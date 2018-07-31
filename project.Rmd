@@ -1,9 +1,9 @@
 ---
 title: 'Peer-graded Assignment: Prediction Assignment Writeup'
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ## Purpose
@@ -182,8 +182,49 @@ knitr::kable(prediction)
 Notice that 8 var's vs 53 gets the same results.  which is interesting.
 All three models get same results, except SVM has one difference (see 3rd row).
 
+## K-folds out of sample error
+
+
+```{r} 
+k.folds <- function(k) {
+    folds <- createFolds(training$classe, k = k, list = TRUE, returnTrain = FALSE)
+    for (i in 1:k) {
+        model <- modRF_org <- randomForest(classe ~ magnet_dumbbell_x + accel_arm_x + gyros_arm_x + gyros_arm_y + roll_forearm + yaw_dumbbell + accel_belt_z + pitch_forearm
+            ,data=training)
+        
+        predictions <- predict(model, newdata = training[-folds[[i]],], type = "class")
+        accuracies.dt <- c(accuracies.dt, 
+                           confusionMatrix(predictions, training[-folds[[i]], ]$classe)$overall[[1]])
+    }
+    accuracies.dt
+}
+
+accuracies.dt <- c()
+accuracies.dt <- k.folds(5)
+accuracies.dt
+
+```
+
+From the output above we see that the values are all very close to or equal to 1.  So this is a very good model.
+
+```{r}
+v <- c()
+v <- replicate(5, k.folds(5))
+accuracies.dt <- c()
+for (i in 1 : 5) { 
+    accuracies.dt <- c(accuracies.dt, v[,i])
+}
+
+mean.accuracies <- mean(accuracies.dt)
+lci <- mean(accuracies.dt) - sd(accuracies.dt) * 1.96
+uci <- mean(accuracies.dt) + sd(accuracies.dt) * 1.96
+
+```
+
+From the output above we see that the out-of-sample error is likely between `r lci` and `r uci`.
+
 ## Conclusions
-During this data exploration we see that random forest seems to have the highest accuracy.  So much so that even when using only 8 varaibles accuracy is still great than the next best model SVM.
+During this data exploration we see that random forest seems to have the highest accuracy.  So much so that even when using only 8 varaibles accuracy is still great than the next best model SVM.  We also see that as the data test set becomes small, the need to use all 53 observations become less import as the model with only 8 preforms well in the out of sample testing.
 
 ### Note about data with "new window"
 Depending on such things as computational limitations and actual use case for these predictions, there may be simpler ways to understand how well someone is preforming an excersie.
